@@ -157,14 +157,15 @@ local function GetNearestTarget()
     return nearestTarget
 end
  
--- GUI Toggle (RightShift)
+-- GUI Toggle (Taste I)
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
+    if input.KeyCode == Enum.KeyCode.I then
         guiVisible = not guiVisible
         MainFrame.Visible = guiVisible
     end
 end)
+
  
 -- Aimbot & ESP Buttons
 AimbotButton.MouseButton1Click:Connect(function()
