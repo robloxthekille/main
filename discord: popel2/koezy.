@@ -160,7 +160,7 @@ end
 -- GUI Toggle (RightShift)
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.K then
+    if input.KeyCode == Enum.KeyCode.RightShift then
         guiVisible = not guiVisible
         MainFrame.Visible = guiVisible
     end
