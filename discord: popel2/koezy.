@@ -1,0 +1,198 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+ 
+-- Einstellungen
+local AimbotActive = false
+local ESPActive = false
+local Target = nil
+local guiVisible = true
+ 
+-- ESP Objekte speichern
+local ESPObjects = {}
+ 
+-- GUI erstellen
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "ScriptHUB_GUI"
+ 
+-- Haupt-Frame
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = guiVisible
+ 
+-- Titel für das Menü
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "Script HUB"
+Title.BackgroundColor3 = Color3.fromRGB(3, 3, 3)
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+ 
+-- Einstellungen Kategorie
+local SettingsFrame = Instance.new("Frame", MainFrame)
+SettingsFrame.Size = UDim2.new(1, 0, 0, 120)
+SettingsFrame.Position = UDim2.new(0, 0, 0, 30)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SettingsFrame.BorderSizePixel = 0
+ 
+-- Titel der Kategorie
+local SettingsTitle = Instance.new("TextLabel", SettingsFrame)
+SettingsTitle.Size = UDim2.new(1, 0, 0, 30)
+SettingsTitle.Text = "Einstellungen"
+SettingsTitle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SettingsTitle.TextColor3 = Color3.new(1, 1, 1)
+SettingsTitle.Font = Enum.Font.SourceSansBold
+SettingsTitle.TextSize = 16
+ 
+-- Aimbot Button
+local AimbotButton = Instance.new("TextButton", SettingsFrame)
+AimbotButton.Size = UDim2.new(1, -20, 0, 35)
+AimbotButton.Position = UDim2.new(0, 10, 0, 40)
+AimbotButton.Text = "Aimbot: OFF"
+AimbotButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+AimbotButton.TextColor3 = Color3.new(1, 1, 1)
+AimbotButton.Font = Enum.Font.SourceSans
+AimbotButton.TextSize = 14
+ 
+-- ESP Button
+local EspButton = Instance.new("TextButton", SettingsFrame)
+EspButton.Size = UDim2.new(1, -20, 0, 35)
+EspButton.Position = UDim2.new(0, 10, 0, 80)
+EspButton.Text = "ESP: OFF"
+EspButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+EspButton.TextColor3 = Color3.new(1, 1, 1)
+EspButton.Font = Enum.Font.SourceSans
+EspButton.TextSize = 14
+ 
+-- ESP erstellen
+local function CreateESP(player)
+    if ESPObjects[player] then return end
+    local box = Drawing.new("Square")
+    box.Thickness = 2
+    box.Color = Color3.fromRGB(170, 0, 255)
+    box.Transparency = 1
+    box.Filled = false
+ 
+    local text = Drawing.new("Text")
+    text.Size = 16
+    text.Center = true
+    text.Outline = true
+    text.Color = Color3.fromRGB(170, 0, 255)
+ 
+    ESPObjects[player] = {Box = box, Text = text}
+end
+ 
+-- ESP entfernen
+local function RemoveESP(player)
+    if ESPObjects[player] then
+        ESPObjects[player].Box:Remove()
+        ESPObjects[player].Text:Remove()
+        ESPObjects[player] = nil
+    end
+end
+ 
+-- Aimbot Logik
+RunService.RenderStepped:Connect(function()
+    if AimbotActive and Target then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Position)
+    end
+ 
+    -- ESP aktualisieren
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+ 
+            if humanoidRootPart then
+                local headPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                local rootPos, onScreen2 = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+ 
+                if ESPActive and onScreen and onScreen2 then
+                    CreateESP(player)
+                    local esp = ESPObjects[player]
+                    local height = math.abs(headPos.Y - rootPos.Y)
+                    local width = height / 2
+ 
+                    esp.Box.Position = Vector2.new(rootPos.X - width / 2, headPos.Y)
+                    esp.Box.Size = Vector2.new(width, height)
+                    esp.Box.Visible = true
+ 
+                    local distance = math.floor((Camera.CFrame.Position - head.Position).Magnitude)
+                    esp.Text.Position = Vector2.new(rootPos.X, headPos.Y - 20)
+                    esp.Text.Text = string.format("%s (%dm) %s", player.Name, distance, player.Character.Humanoid.Health > 0 and "Alive" or "Dead")
+                    esp.Text.Visible = true
+                elseif not ESPActive then
+                    RemoveESP(player)
+                end
+            end
+        else
+            RemoveESP(player)
+        end
+    end
+end)
+ 
+-- Zielerkennung
+local function GetNearestTarget()
+    local nearestTarget = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(UIS:GetMouseLocation().X, UIS:GetMouseLocation().Y)).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestTarget = head
+                end
+            end
+        end
+    end
+    return nearestTarget
+end
+ 
+-- GUI Toggle (RightShift)
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        guiVisible = not guiVisible
+        MainFrame.Visible = guiVisible
+    end
+end)
+ 
+-- Aimbot & ESP Buttons
+AimbotButton.MouseButton1Click:Connect(function()
+    AimbotActive = not AimbotActive
+    AimbotButton.Text = "Aimbot: " .. (AimbotActive and "ON" or "OFF")
+end)
+ 
+EspButton.MouseButton1Click:Connect(function()
+    ESPActive = not ESPActive
+    EspButton.Text = "ESP: " .. (ESPActive and "ON" or "OFF")
+end)
+ 
+-- Aimbot Aktivierung mit rechter Maustaste
+UIS.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        AimbotActive = true
+        Target = GetNearestTarget()
+    end
+end)
+ 
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        AimbotActive = false
+        Target = nil
+    end
+end)
+ 
+-- Spieler verlassen
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+end)
